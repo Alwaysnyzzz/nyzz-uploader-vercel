@@ -1,19 +1,8 @@
-// pages/file/[...slug].js
-// Handle semua URL:
-// /file/image/IMG_a1b2c3d4.jpg
-// /file/video/VID_a1b2c3d4.mp4
-// /file/audio/AUD_a1b2c3d4.mp3
-// /file/FILE_a1b2c3d4.zip
-
 const OWNER  = process.env.GITHUB_OWNER;
 const REPO   = process.env.GITHUB_REPO;
 const BRANCH = process.env.GITHUB_BRANCH || 'main';
 
-const FOLDER_MAP = {
-  image: 'images',
-  video: 'videos',
-  audio: 'audios',
-};
+const FOLDER_MAP = { image:'images', video:'videos', audio:'audios' };
 
 export default function FilePage({ type, filename, rawUrl, notFound }) {
   if (notFound) return (
@@ -21,22 +10,32 @@ export default function FilePage({ type, filename, rawUrl, notFound }) {
       <div style={{textAlign:'center'}}>
         <div style={{fontSize:48,marginBottom:16}}>😵</div>
         <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>File Tidak Ditemukan</div>
-        <div style={{fontSize:13,color:'#8888a8'}}>File mungkin sudah dihapus atau URL salah.</div>
+        <div style={{fontSize:13,color:'#8888a8',marginBottom:20}}>File mungkin sudah dihapus atau URL salah.</div>
+        <a href="https://docs.nyzz.my.id" style={{color:'#a78bfa',textDecoration:'none',fontSize:13}}>← Kembali ke Docs</a>
       </div>
     </div>
   );
 
   if (type === 'image') return (
-    <div style={{background:'#07070f',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      <img src={rawUrl} alt={filename} style={{maxWidth:'100%',maxHeight:'100vh',borderRadius:12}} />
+    <div style={{background:'#07070f',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
+      <img src={rawUrl} alt={filename} style={{maxWidth:'100%',maxHeight:'90vh',borderRadius:12}} />
+      <div style={{marginTop:12,fontSize:11,color:'#44445a'}}>
+        <a href={rawUrl} download={filename} style={{color:'#a78bfa',textDecoration:'none'}}>Download</a>
+        {' · '}
+        <a href="https://docs.nyzz.my.id" style={{color:'#44445a',textDecoration:'none'}}>NyzzAPI</a>
+      </div>
     </div>
   );
 
   if (type === 'video') return (
-    <div style={{background:'#000',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <video controls autoPlay style={{maxWidth:'100%',maxHeight:'100vh'}}>
+    <div style={{background:'#000',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+      <video controls autoPlay style={{maxWidth:'100%',maxHeight:'95vh'}}>
         <source src={rawUrl} />
+        Browser tidak support video.
       </video>
+      <div style={{marginTop:10,fontSize:11,color:'#44445a'}}>
+        <a href={rawUrl} download={filename} style={{color:'#a78bfa',textDecoration:'none'}}>Download</a>
+      </div>
     </div>
   );
 
@@ -48,14 +47,16 @@ export default function FilePage({ type, filename, rawUrl, notFound }) {
         <audio controls autoPlay style={{width:'100%',borderRadius:8}}>
           <source src={rawUrl} />
         </audio>
-        <div style={{marginTop:16,fontSize:11,color:'#44445a'}}>
-          Powered by <a href="https://api.nyzz.my.id" style={{color:'#a78bfa',textDecoration:'none'}}>NyzzAPI</a>
+        <div style={{marginTop:16}}>
+          <a href={rawUrl} download={filename} style={{color:'#a78bfa',textDecoration:'none',fontSize:12}}>Download</a>
+        </div>
+        <div style={{marginTop:12,fontSize:11,color:'#44445a'}}>
+          Powered by <a href="https://api.nyzz.my.id" style={{color:'#44445a',textDecoration:'none'}}>NyzzAPI</a>
         </div>
       </div>
     </div>
   );
 
-  // FILE — download page
   const ext = filename.split('.').pop().toLowerCase();
   return (
     <div style={{background:'#07070f',color:'#ededf5',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'system-ui',padding:20}}>
@@ -68,7 +69,7 @@ export default function FilePage({ type, filename, rawUrl, notFound }) {
           Download File
         </a>
         <div style={{marginTop:16,fontSize:11,color:'#44445a'}}>
-          Powered by <a href="https://api.nyzz.my.id" style={{color:'#a78bfa',textDecoration:'none'}}>NyzzAPI</a>
+          Powered by <a href="https://api.nyzz.my.id" style={{color:'#44445a',textDecoration:'none'}}>NyzzAPI</a>
         </div>
       </div>
     </div>
@@ -77,17 +78,12 @@ export default function FilePage({ type, filename, rawUrl, notFound }) {
 
 export async function getServerSideProps({ params }) {
   const slug = params.slug || [];
-
   let type, filename;
 
-  // /file/image/IMG_xxx.jpg  → slug = ['image', 'IMG_xxx.jpg']
-  // /file/FILE_xxx.zip       → slug = ['FILE_xxx.zip']
   if (['image','video','audio'].includes(slug[0])) {
-    type     = slug[0];
-    filename = slug[1];
+    type = slug[0]; filename = slug[1];
   } else {
-    type     = 'file';
-    filename = slug[0];
+    type = 'file'; filename = slug[0];
   }
 
   if (!filename) return { props: { notFound: true } };
@@ -95,13 +91,10 @@ export async function getServerSideProps({ params }) {
   const folder = FOLDER_MAP[type] || 'files';
   const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${folder}/${filename}`;
 
-  // Cek apakah file exist
   try {
     const check = await fetch(rawUrl, { method: 'HEAD' });
     if (!check.ok) return { props: { notFound: true } };
-  } catch {
-    return { props: { notFound: true } };
-  }
+  } catch { return { props: { notFound: true } }; }
 
   return { props: { type, filename, rawUrl } };
 }
